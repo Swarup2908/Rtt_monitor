@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ endpoint.name }} - RTT Monitor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        .rtt-healthy { color: #28a745; }
+        .rtt-warning { color: #ffc107; }
+        .rtt-danger { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ endpoint.name }}</h1>
+            <p><strong>URL:</strong> {{ endpoint.url }}</p>
+            <p><strong>Threshold:</strong> {{ endpoint.threshold_ms }}ms</p>
+            <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
+        </div>
+
+        <div class="section">
+            <h3>Recent Measurements</h3>
+            {% if measurements %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>RTT (ms)</th>
+                        <th>Status Code</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for measurement in measurements %}
+                    <tr>
+                        <td>{{ measurement.timestamp|date:"M d, Y H:i:s" }}</td>
+                        <td class="{% if measurement.rtt_ms <= endpoint.threshold_ms %}rtt-healthy{% else %}rtt-danger{% endif %}">
+                            {{ measurement.rtt_ms|floatformat:2 }}
+                        </td>
+                        <td>{{ measurement.status_code|default:"Error" }}</td>
+                        <td>
+                            {% if measurement.error_message %}
+                                <span style="color: red;">Error</span>
+                            {% elif measurement.rtt_ms <= endpoint.threshold_ms %}
+                                <span style="color: green;">OK</span>
+                            {% else %}
+                                <span style="color: red;">Slow</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No measurements available yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h3>Recent Alerts</h3>
+            {% if alerts %}
+            {% for alert in alerts %}
+            <div style="padding: 10px; margin: 10px 0; border-left: 4px solid #dc3545; background: #f8f9fa;">
+                <strong>{{ alert.get_alert_type_display }}</strong>: {{ alert.message }}
+                <br><small>{{ alert.created_at|timesince }} ago</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p>No alerts for this endpoint.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

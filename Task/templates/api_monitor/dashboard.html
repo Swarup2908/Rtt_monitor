@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RTT Monitor Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        .endpoints { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .endpoint-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .rtt-healthy { color: #28a745; }
+        .rtt-warning { color: #ffc107; }
+        .rtt-danger { color: #dc3545; }
+        .btn { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>RTT Monitor Dashboard</h1>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>{{ total_endpoints }}</h3>
+                <p>Total Endpoints</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ active_alerts }}</h3>
+                <p>Active Alerts</p>
+            </div>
+        </div>
+
+        <div class="endpoints">
+            {% for stat in endpoint_stats %}
+            <div class="endpoint-card">
+                <h3>{{ stat.endpoint.name }}</h3>
+                <p><small>{{ stat.endpoint.url }}</small></p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong class="rtt-{% if stat.status == 'healthy' %}healthy{% else %}danger{% endif %}">
+                            {% if stat.latest_rtt %}{{ stat.latest_rtt|floatformat:2 }}ms{% else %}No data{% endif %}
+                        </strong>
+                        <br><small>Avg 24h: {{ stat.avg_rtt_24h }}ms</small>
+                    </div>
+                    <div>
+                        <button class="btn" onclick="triggerCheck({{ stat.endpoint.id }})">Check Now</button>
+                        <br><small><a href="{% url 'endpoint_detail' stat.endpoint.id %}">Details</a></small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if recent_alerts %}
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 30px;">
+            <h3>Recent Alerts</h3>
+            {% for alert in recent_alerts %}
+            <div style="padding: 10px; margin: 10px 0; border-left: 4px solid #dc3545; background: #f8f9fa;">
+                <strong>{{ alert.get_alert_type_display }}</strong>: {{ alert.message }}
+                <br><small>{{ alert.created_at|timesince }} ago</small>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function triggerCheck(endpointId) {
+            fetch(`/trigger/${endpointId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                setTimeout(() => location.reload(), 2000);
+            });
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => location.reload(), 30000);
+    </script>
+</body>
+</html>
