@@ -53,12 +53,12 @@ python manage.py runserver
 
 3. **Start Celery worker** (in a new terminal):
 ```bash
-celery -A your_app_name worker --loglevel=info
+celery -A rtt_monitor worker --loglevel=info
 ```
 
 4. **Start Celery beat scheduler** (optional, for periodic tasks):
 ```bash
-celery -A your_app_name beat --loglevel=info
+celery -A rtt_monitor beat --loglevel=info
 ```
 
 ## Configuration
